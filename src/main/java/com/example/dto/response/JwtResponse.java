@@ -1,4 +1,4 @@
-package com.example.payload.response;
+package com.example.dto.response;
 import java.util.List;
 
 public class JwtResponse {

@@ -16,26 +16,29 @@ public class UserDetailsImpl implements UserDetails {
 
 	private Long id;
 
-	private String username;
+	private String userName;
 
 	private String email;
 
 	@JsonIgnore
 	private String password;
 
+	private Boolean isEnabled;
 	private Collection<? extends GrantedAuthority> authorities;
 
-	public UserDetailsImpl(Long id, String username, String email, String password,
+	public UserDetailsImpl(Long id, String userName, String email, String password,
+												 Boolean isEnabled,
 						   Collection<? extends GrantedAuthority> authorities) {
 		this.id = id;
-		this.username = username;
+		this.userName = userName;
 		this.email = email;
 		this.password = password;
 		this.authorities = authorities;
+		this.isEnabled = isEnabled;
 	}
 
 	public static UserDetailsImpl build(Users user) {
-		List<GrantedAuthority> authorities = user.getRoles().stream()
+		List<GrantedAuthority> authorities = user.getRole().stream()
 				.map(role -> new SimpleGrantedAuthority(role.getName().name()))
 				.collect(Collectors.toList());
 
@@ -44,8 +47,25 @@ public class UserDetailsImpl implements UserDetails {
 				user.getUsername(),
 				user.getEmail(),
 				user.getPassword(),
+				user.getEnabled(),
 				authorities);
 	}
+
+
+	private Users users;
+
+	public UserDetailsImpl(Users users) {
+		this.users = users;
+	}
+
+
+	@Override
+	public boolean isEnabled() {
+		return isEnabled;
+	}
+
+
+
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -67,7 +87,7 @@ public class UserDetailsImpl implements UserDetails {
 
 	@Override
 	public String getUsername() {
-		return username;
+		return userName;
 	}
 
 	@Override
@@ -85,10 +105,7 @@ public class UserDetailsImpl implements UserDetails {
 		return true;
 	}
 
-	@Override
-	public boolean isEnabled() {
-		return true;
-	}
+
 
 	@Override
 	public boolean equals(Object o) {

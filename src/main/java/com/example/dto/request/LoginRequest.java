@@ -1,19 +1,21 @@
-package com.example.payload.request;
+package com.example.dto.request;
 
 import javax.validation.constraints.NotBlank;
 
 import lombok.*;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 
 public class LoginRequest {
 	@NotBlank
-	private String username;
+	private String userName;
 
 	@NotBlank
 	private String password;
+
 
 
 }

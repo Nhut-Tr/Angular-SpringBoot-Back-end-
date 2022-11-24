@@ -1,117 +1,182 @@
 package com.example.controller;
 
+import com.example.dto.request.ChangePasswordRequest;
+import com.example.dto.request.ResetPasswordRequest;
 import com.example.model.ERole;
 import com.example.model.Role;
 import com.example.model.Users;
-import com.example.payload.request.LoginRequest;
-import com.example.payload.request.SignupResquest;
-import com.example.payload.response.JwtResponse;
-import com.example.payload.response.MessageResponse;
+import com.example.dto.request.LoginRequest;
+import com.example.dto.request.SignupRequest;
+import com.example.dto.response.JwtResponse;
+import com.example.dto.response.MessageResponse;
 import com.example.repository.RoleDAO;
 import com.example.repository.UserDAO;
 import com.example.security.jwt.JwtUtils;
 import com.example.security.service.UserDetailsImpl;
+import com.example.security.service.UserServices;
+import net.bytebuddy.utility.RandomString;
+import org.apache.catalina.User;
+import org.aspectj.weaver.bcel.Utility;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.mail.MessagingException;
 import javax.validation.Valid;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-@CrossOrigin(origins = "*", maxAge = 3600)
+
+@CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/")
 public class AuthController {
-	@Autowired
-	AuthenticationManager authenticationManager;
+  @Autowired
+  AuthenticationManager authenticationManager;
 
-	@Autowired
-	UserDAO userDAO;
+  @Autowired
+  UserDAO userDAO;
 
-	@Autowired
-	RoleDAO roleDAO;
+  @Autowired
+  RoleDAO roleDAO;
 
-	@Autowired
-	PasswordEncoder encoder;
+  @Autowired
+  PasswordEncoder encoder;
 
-	@Autowired
-	JwtUtils jwtUtils;
+  @Autowired
+  JwtUtils jwtUtils;
 
-	@PostMapping("/signin")
-	public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+  @Autowired
+  UserServices userServices;
+  @Value("${server.frontend}")
+  private String getSiteURL;
 
-		Authentication authentication = authenticationManager.authenticate(
-				new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+  @PostMapping("/login")
+  public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    try {
+      Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUserName(), loginRequest.getPassword()));
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+      String jwt = jwtUtils.generateJwtToken(authentication);
+      UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+      List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority()).collect(Collectors.toList());
+      return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(), roles));
+    } catch (DisabledException ex) {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Your account is not verify!"));
+    }
+  }
 
-		SecurityContextHolder.getContext().setAuthentication(authentication);
-		String jwt = jwtUtils.generateJwtToken(authentication);
+  @PostMapping("/register")
+  public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) throws MessagingException, UnsupportedEncodingException {
+    if (userDAO.existsByUsername(signUpRequest.getUserName())) {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
+    }
 
-		UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-		List<String> roles = userDetails.getAuthorities().stream()
-				.map(item -> item.getAuthority())
-				.collect(Collectors.toList());
+    if (userDAO.existsByEmail(signUpRequest.getEmail())) {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
+    }
 
-		return ResponseEntity.ok(new JwtResponse(jwt,
-				userDetails.getId(),
-				userDetails.getUsername(),
-				userDetails.getEmail(),
-				roles));
-	}
+    // Create new user's account
+    Users user = new Users(signUpRequest.getUserName(), signUpRequest.getEmail(), signUpRequest.getFullName(), encoder.encode(signUpRequest.getPassword()));
+    user.setFullName(signUpRequest.getFullName());
+    Set<String> strRoles = signUpRequest.getRole();
+    Set<Role> roles = new HashSet<>();
 
-	@PostMapping("/signup")
-	public ResponseEntity<?> registerUser(@Valid @RequestBody SignupResquest signUpRequest) {
-		if (userDAO.existsByUsername(signUpRequest.getUsername())) {
-			return ResponseEntity
-					.badRequest()
-					.body(new MessageResponse("Error: Username is already taken!"));
-		}
+    if (strRoles == null) {
+      Role userRole = roleDAO.findByName(ERole.ROLE_USER).orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+      roles.add(userRole);
+    } else {
+      strRoles.forEach(role -> {
+        switch (role) {
+          case "admin":
+            Role adminRole = roleDAO.findByName(ERole.ROLE_ADMIN).orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+            roles.add(adminRole);
+            break;
+          case "moderator":
+            Role moderatorRole = roleDAO.findByName(ERole.ROLE_MODERATOR).orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+            roles.add(moderatorRole);
+            break;
+          case "user":
+            Role userRole = roleDAO.findByName(ERole.ROLE_USER).orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+            roles.add(userRole);
+        }
+      });
+    }
 
-		if (userDAO.existsByEmail(signUpRequest.getEmail())) {
-			return ResponseEntity
-					.badRequest()
-					.body(new MessageResponse("Error: Email is already in use!"));
-		}
+    user.setRole(roles);
+    userServices.register(user, getSiteURL);
+    return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+  }
 
-		// Create new user's account
-		Users user = new Users(signUpRequest.getUsername(),
-				signUpRequest.getEmail(),
-				encoder.encode(signUpRequest.getPassword()));
+  @GetMapping("/verify")
+  public ResponseEntity<?> verifyUser(@Param("code") String code) {
+    if (userServices.verify(code)) {
+      return ResponseEntity.ok(new MessageResponse("Verify successfully!"));
+    } else {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Verify fail!"));
+    }
+  }
 
-		Set<String> strRoles = signUpRequest.getRole();
-		Set<Role> roles = new HashSet<>();
+  @PostMapping("/forget-password")
+  public ResponseEntity<?> forgetPassword(@Valid @RequestBody String email) throws MessagingException, UnsupportedEncodingException {
+    try {
+      String token = RandomString.make(30);
+      userServices.updateResetPasswordToken(token, email);
+      String resetPasswordLink = getSiteURL + "/reset?token=" + token;
+      userServices.sendEmail(email, resetPasswordLink);
+      return ResponseEntity.ok(new MessageResponse("Email sent!"));
+    } catch (Exception ex) {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Not Found Email"));
+    }
 
-		if (strRoles == null) {
-			Role userRole = roleDAO.findByName(ERole.ROLE_USER)
-					.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-			roles.add(userRole);
-		} else {
-			strRoles.forEach(role -> {
-				switch (role) {
-					case "admin":
-						Role adminRole = roleDAO.findByName(ERole.ROLE_ADMIN)
-								.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-						roles.add(adminRole);
+  }
 
-						break;
-					default:
-						Role userRole = roleDAO.findByName(ERole.ROLE_USER)
-								.orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-						roles.add(userRole);
-				}
-			});
-		}
+  @GetMapping("/reset-password")
+  public ResponseEntity<?> showResetPasswordForm(@Param(value = "token") String token) {
+    Users users = userServices.getByResetPasswordToken(token);
+    if (users == null) {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid Token!"));
+    }
+    return ResponseEntity.ok(new MessageResponse("Reset successfully!"));
+  }
 
-		user.setRoles(roles);
-		userDAO.save(user);
+  @PostMapping("/reset-password")
+  public ResponseEntity<?> processResetPassword(@RequestBody ResetPasswordRequest resetPasswordRequest) {
+    Users users = userServices.getByResetPasswordToken(resetPasswordRequest.getToken());
+    if (users == null) {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid Token!"));
+    } else {
+      userServices.updatePassword(users, resetPasswordRequest.getPassword());
+      return ResponseEntity.ok(new MessageResponse("You have successfully changed your password!"));
+    }
+  }
 
-		return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
-	}
+  @PostMapping("/change-password")
+  public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest) {
+    Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+       changePasswordRequest.getUserName(), changePasswordRequest.getOldPassword()));
+    UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+    if (userDetails == null) {
+      return ResponseEntity.badRequest().body(new MessageResponse("Error: Password not match!"));
+    }
+    else{
+      userServices.changePassword(changePasswordRequest.getUserId(),changePasswordRequest.getNewPassword());
+      return ResponseEntity.ok(new MessageResponse("Change password successfully!"));
+    }
+
+  }
+
+
 }

@@ -1,34 +1,34 @@
 package com.example.model;
 
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.Serializable;
+import java.util.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(	name = "USERS", 
 		uniqueConstraints = { 
 			@UniqueConstraint(columnNames = "USERNAME"),
 			@UniqueConstraint(columnNames = "EMAIL") 
 		})
+
 public class Users {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private long Id;
+	private Long Id;
 
 	@NotBlank
 	@Column(name="USERNAME")
@@ -42,26 +42,44 @@ public class Users {
 	@NotBlank
 	@Column(name="PASSWORD")
 	private String password;
-	
-	
 
+	@Column(name="Full_name")
+	private String fullName;
+
+	@Column(name="Verification_code",length = 64)
+	private String verificationCode;
+
+	@Column(name="RESET_PASSWORD_TOKEN")
+	private String resetPasswordToken;
+
+	@Column(name = "enabled")
+	private Boolean enabled;
+
+	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 	@ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name= "User_Role",
-    	joinColumns = @JoinColumn(name = "user_Id"),
-    	inverseJoinColumns = @JoinColumn(name = "role_Id"))
-	private Set<Role> roles = new HashSet<>();
+    	joinColumns = @JoinColumn(name = "User_Id"),
+    	inverseJoinColumns = @JoinColumn(name = "Role_Id"))
+	private Set<Role> role = new HashSet<>();
+
+	@OneToMany(mappedBy = "userId")
+	List<CheckoutCart> checkoutCarts;
 
 
 
-	public Users( @NotBlank String username, @NotBlank  @Email String email,
+	public Users( @NotBlank String username, @NotBlank  @Email String email,@NotBlank String fullName,
 			@NotBlank String password ) {
-		
+
 		this.username = username;
 		this.email = email;
 		this.password = password;
-		
+
 	}
-	
+
+
+
+
+
 	
 	
 	

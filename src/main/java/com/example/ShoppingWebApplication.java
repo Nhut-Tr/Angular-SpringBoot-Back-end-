@@ -10,6 +10,7 @@ public class ShoppingWebApplication {
 
 	public static void main(String[] args) {
 	SpringApplication.run(ShoppingWebApplication.class,args);
+
 	}
 
 
