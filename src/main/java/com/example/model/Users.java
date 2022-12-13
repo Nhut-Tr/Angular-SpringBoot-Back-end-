@@ -55,12 +55,17 @@ public class Users {
 	@Column(name = "enabled")
 	private Boolean enabled;
 
+	@Column(name = "Avatar")
+	private String avatar;
+
+
 	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 	@ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name= "User_Role",
     	joinColumns = @JoinColumn(name = "User_Id"),
     	inverseJoinColumns = @JoinColumn(name = "Role_Id"))
 	private Set<Role> role = new HashSet<>();
+
 
 	@OneToMany(mappedBy = "userId")
 	List<CheckoutCart> checkoutCarts;

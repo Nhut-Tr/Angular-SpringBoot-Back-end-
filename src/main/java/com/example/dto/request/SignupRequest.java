@@ -6,6 +6,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 
 import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
@@ -13,7 +14,7 @@ import lombok.*;
 @AllArgsConstructor
 public class SignupRequest {
   @NotBlank
-  private String userName;
+  private String username;
 
   @NotBlank
   @Pattern(regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$", message = "wrong format, should be abc@abc.com ")
@@ -27,6 +28,7 @@ public class SignupRequest {
   @NotBlank
   private String fullName;
 
+  private MultipartFile avatar;
 
 
 

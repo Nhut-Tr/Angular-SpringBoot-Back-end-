@@ -12,30 +12,27 @@ import com.example.dto.response.MessageResponse;
 import com.example.repository.RoleDAO;
 import com.example.repository.UserDAO;
 import com.example.security.jwt.JwtUtils;
+import com.example.security.service.IStorageService;
 import com.example.security.service.UserDetailsImpl;
 import com.example.security.service.UserServices;
 import net.bytebuddy.utility.RandomString;
-import org.apache.catalina.User;
-import org.aspectj.weaver.bcel.Utility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
 import javax.mail.MessagingException;
+import javax.transaction.Transactional;
 import javax.validation.Valid;
 import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,6 +57,10 @@ public class AuthController {
 
   @Autowired
   UserServices userServices;
+
+  @Autowired
+  IStorageService iStorageService;
+
   @Value("${server.frontend}")
   private String getSiteURL;
 
@@ -71,25 +72,27 @@ public class AuthController {
       String jwt = jwtUtils.generateJwtToken(authentication);
       UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
       List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority()).collect(Collectors.toList());
-      return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(), roles));
+      return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(),userDetails.getFullName(), roles,userDetails.getAvatar()));
     } catch (DisabledException ex) {
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Your account is not verify!"));
     }
   }
 
+
   @PostMapping("/register")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) throws MessagingException, UnsupportedEncodingException {
-    if (userDAO.existsByUsername(signUpRequest.getUserName())) {
+    if (userDAO.existsByUsername(signUpRequest.getUsername())) {
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
     }
 
     if (userDAO.existsByEmail(signUpRequest.getEmail())) {
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
     }
-
+//    String file = iStorageService.storeFile(signUpRequest.getAvatar());
     // Create new user's account
-    Users user = new Users(signUpRequest.getUserName(), signUpRequest.getEmail(), signUpRequest.getFullName(), encoder.encode(signUpRequest.getPassword()));
+    Users user = new Users(signUpRequest.getUsername(), signUpRequest.getEmail(), signUpRequest.getFullName(), encoder.encode(signUpRequest.getPassword()));
     user.setFullName(signUpRequest.getFullName());
+//    user.setAvatar(file);
     Set<String> strRoles = signUpRequest.getRole();
     Set<Role> roles = new HashSet<>();
 

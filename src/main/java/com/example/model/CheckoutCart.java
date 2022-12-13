@@ -35,19 +35,22 @@ public class CheckoutCart {
     @Column(name = "delivery_address")
     String deliveryAddress;
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
 
-
-
-//    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-
+    @Column(name = "Description")
+    private String description;
     @ManyToOne
     @JoinColumn(name = "product_id")
     Products products;
 
-//    @OneToOne(cascade = CascadeType.ALL)
-//    private Cart cart_id;
 
     Long userId;
+
+
+    @ManyToOne(cascade = {CascadeType.ALL})
+    @JoinColumn(name = "Order_Id")
+    Orders orders;
 
 
 

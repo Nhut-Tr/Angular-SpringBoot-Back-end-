@@ -71,6 +71,10 @@ public class CartServiceImpl implements CartService {
     public List<CheckoutCart> getHistoryByUserId(Long userId){
         return  checkoutDAO.getByUserId(userId);
     }
+    @Override
+    public List<CheckoutCart> getHistoryByOrderId(Long orderId){
+        return  checkoutDAO.getHistoryByOrderId(orderId);
+    }
 
 
     @Override

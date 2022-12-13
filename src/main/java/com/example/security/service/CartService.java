@@ -15,6 +15,7 @@ public interface CartService {
     void updateQtyByCartId(Long cartId,Double quantity,Double price,Long userId) throws Exception;
     List<Cart> getCartByUserId(Long userId);
     List<CheckoutCart> getHistoryByUserId(Long userId);
+    List<CheckoutCart> getHistoryByOrderId(Long orderId);
     List<Cart> removeAllCartByUserId(Long userId);
     Boolean checkTotalAmountAgainstCart(Double totalAmount,Long userId);
     List<CheckoutCart> getAllCheckoutByUserId(Long userId);

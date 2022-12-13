@@ -4,6 +4,7 @@ import com.example.dto.response.ApiResponse;
 import com.example.model.*;
 import com.example.repository.CartDAO;
 import com.example.repository.CheckoutDAO;
+import com.example.repository.OrdersDAO;
 import com.example.repository.UserDAO;
 import com.example.security.service.CartService;
 import com.example.security.service.ProductService;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,20 +37,24 @@ public class OrderController {
   @Autowired
   CartDAO cartDAO;
 
+  @Autowired
+  OrdersDAO ordersDAO;
+
+  @Transactional
   @RequestMapping("/check-out")
   public ResponseEntity<?> checkout_order(@RequestBody HashMap<String, String> addCartRequest) {
     try {
-      String keys[] = {"userId", "totalPrice", "deliveryAddress"};
+      String keys[] = {"userId", "totalPrice", "deliveryAddress","phoneNumber","description"};
       if (ShoppingConfiguration.validationWithHashMap(keys, addCartRequest)) {
 
 
       }
       Long userId = Long.parseLong(addCartRequest.get("userId"));
-      Users user = userDAO.findUserById(userId).get(0);
       Double totalAmt = Double.parseDouble(addCartRequest.get("totalPrice"));
       if (cartService.checkTotalAmountAgainstCart(totalAmt, userId)) {
         List<Cart> cartItems = cartService.getCartByUserId(userId);
         List<CheckoutCart> tmp = new ArrayList<>();
+        Orders or = new Orders();
         for (Cart addCart : cartItems) {
           Products product = addCart.getProducts();
           CheckoutCart cart = new CheckoutCart();
@@ -59,9 +65,13 @@ public class OrderController {
           cart.setProducts(product);
           cart.setQuantity(addCart.getQuantity());
           cart.setDeliveryAddress(addCartRequest.get("deliveryAddress"));
+          cart.setPhoneNumber(addCartRequest.get("phoneNumber"));
+          cart.setDescription(addCartRequest.get("description"));
+          cart.setOrders(or);
           tmp.add(cart);
+          checkoutDAO.save(cart);
         }
-        cartService.saveProductsForCheckout(tmp);
+          cartDAO.deleteAllCartByUserId(userId);
         return ResponseEntity.ok(new ApiResponse("Order successfully", ""));
       } else {
         throw new Exception("Total amount is mismatch");
@@ -88,6 +98,15 @@ public class OrderController {
   public ResponseEntity<?> getHistoryByUserId(@RequestParam Long userId) {
     try {
       List<CheckoutCart> obj = cartService.getHistoryByUserId((userId));
+      return ResponseEntity.ok(obj);
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage(), ""));
+    }
+  }
+  @GetMapping("/get-history-by-order-id")
+  public ResponseEntity<?> getHistoryByOrderId(@RequestParam Long orderId) {
+    try {
+      List<CheckoutCart> obj = cartService.getHistoryByOrderId((orderId));
       return ResponseEntity.ok(obj);
     } catch (Exception e) {
       return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage(), ""));

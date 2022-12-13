@@ -2,6 +2,7 @@ package com.example.controller;
 
 import com.example.dto.request.RemoveCart;
 import com.example.dto.response.ApiResponse;
+import com.example.dto.response.MessageResponse;
 import com.example.model.Cart;
 import com.example.model.Products;
 import com.example.repository.CartDAO;
@@ -97,7 +98,7 @@ public class CartController {
             List<Cart> obj = cartService.getCartByUserId((userId));
             return ResponseEntity.ok(obj);
         }catch(Exception e) {
-            return ResponseEntity.badRequest().body(new ApiResponse(e.getMessage(), ""));
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Anh sai roi em xin loi anh di !"));
         }
     }
 

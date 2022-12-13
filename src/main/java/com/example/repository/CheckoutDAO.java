@@ -14,6 +14,9 @@ public interface CheckoutDAO extends JpaRepository<CheckoutCart,Long> {
     @Query(value=("Select *  FROM Checkout_Cart checkCart WHERE checkCart.user_id=:userId"),nativeQuery = true)
     List<CheckoutCart> getByUserId(@Param("userId") Long userId);
 
+    @Query(value=("Select *  FROM Checkout_Cart checkCart WHERE checkCart.order_id=:orderId"),nativeQuery = true)
+    List<CheckoutCart> getHistoryByOrderId(@Param("orderId") Long orderId);
+
     @Query(value ="Select * FROM Checkout_Cart c Order By Quantity desc",nativeQuery = true)
     List<CheckoutCart> getBestSale();
 }
