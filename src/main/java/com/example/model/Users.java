@@ -60,7 +60,7 @@ public class Users {
 
 
 	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-	@ManyToMany(fetch = FetchType.LAZY)
+	@ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name= "User_Role",
     	joinColumns = @JoinColumn(name = "User_Id"),
     	inverseJoinColumns = @JoinColumn(name = "Role_Id"))

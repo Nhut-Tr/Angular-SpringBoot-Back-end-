@@ -6,25 +6,21 @@ import com.example.dto.request.SignupRequest;
 import com.example.dto.request.UpdateProfileDTO;
 import com.example.dto.response.MessageResponse;
 import com.example.model.ERole;
+import com.example.model.Products;
 import com.example.model.Role;
 import com.example.model.Users;
 import com.example.repository.RoleDAO;
 import com.example.repository.UserDAO;
 import com.example.security.service.IStorageService;
-import com.example.security.service.UserDetailsImpl;
-import com.example.security.service.UserDetailsServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.hibernate.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.transaction.annotation.Propagation;
@@ -77,6 +73,7 @@ public class UserController {
       Users user = usersData.get();
       user.setUsername(users.getUsername());
       user.setFullName(users.getFullName());
+      user.setEnabled(users.getEnabled());
       user.setRole(users.getRole());
       return new ResponseEntity<>(userDAO.save(user), HttpStatus.OK);
     } else {
@@ -153,24 +150,35 @@ public class UserController {
   }
 
 
-  @DeleteMapping("/user/{id}")
-  public ResponseEntity<HttpStatus> deleteUser(@PathVariable Long id) {
-    try {
-      userDAO.deleteById(id);
-      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    } catch (Exception ex) {
-      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+//  @DeleteMapping("/user/{id}")
+//  public ResponseEntity<HttpStatus> deleteUser(@PathVariable Long id) {
+//    try {
+//      userDAO.deleteById(id);
+//      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+//    } catch (Exception ex) {
+//      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+//    }
+//  }
+  @PutMapping("/user-status/{id}")
+  public ResponseEntity<Users> updateStatus(@PathVariable(name = "id") Long id) {
+    Optional<Users> userData = userDAO.findById(id);
+    if (userData.isPresent()) {
+      Users users = userData.get();
+      users.setEnabled(false);
+      return new ResponseEntity<>(userDAO.save(users), HttpStatus.OK);
+    } else {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
   }
 
 
-  @DeleteMapping("/user")
-  public ResponseEntity<HttpStatus> deleteUser() {
-    try {
-      userDAO.deleteAll();
-      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    } catch (Exception ex) {
-      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
+//  @DeleteMapping("/user")
+//  public ResponseEntity<HttpStatus> deleteUser() {
+//    try {
+//      userDAO.deleteAll();
+//      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+//    } catch (Exception ex) {
+//      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+//    }
+//  }
 }

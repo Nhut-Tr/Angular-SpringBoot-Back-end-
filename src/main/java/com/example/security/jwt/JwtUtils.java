@@ -3,28 +3,15 @@ package com.example.security.jwt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.WebUtils;
 
 import io.jsonwebtoken.*;
 
 
-import com.example.security.service.UserDetailsImpl;
-
-import java.io.Serializable;
+import com.example.security.service.impl.UserDetailsImpl;
 
 import java.util.Date;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Component;
 
 
 import io.jsonwebtoken.Jwts;

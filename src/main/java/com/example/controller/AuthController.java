@@ -13,7 +13,7 @@ import com.example.repository.RoleDAO;
 import com.example.repository.UserDAO;
 import com.example.security.jwt.JwtUtils;
 import com.example.security.service.IStorageService;
-import com.example.security.service.UserDetailsImpl;
+import com.example.security.service.impl.UserDetailsImpl;
 import com.example.security.service.UserServices;
 import net.bytebuddy.utility.RandomString;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +27,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
 import javax.mail.MessagingException;
-import javax.transaction.Transactional;
 import javax.validation.Valid;
 import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
@@ -72,7 +72,7 @@ public class AuthController {
       String jwt = jwtUtils.generateJwtToken(authentication);
       UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
       List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority()).collect(Collectors.toList());
-      return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(),userDetails.getFullName(), roles,userDetails.getAvatar()));
+      return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(), userDetails.getFullName(), roles, userDetails.getAvatar()));
     } catch (DisabledException ex) {
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Your account is not verify!"));
     }
@@ -88,11 +88,9 @@ public class AuthController {
     if (userDAO.existsByEmail(signUpRequest.getEmail())) {
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
     }
-//    String file = iStorageService.storeFile(signUpRequest.getAvatar());
     // Create new user's account
     Users user = new Users(signUpRequest.getUsername(), signUpRequest.getEmail(), signUpRequest.getFullName(), encoder.encode(signUpRequest.getPassword()));
     user.setFullName(signUpRequest.getFullName());
-//    user.setAvatar(file);
     Set<String> strRoles = signUpRequest.getRole();
     Set<Role> roles = new HashSet<>();
 
@@ -168,14 +166,13 @@ public class AuthController {
   @PostMapping("/change-password")
   public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest) {
     Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-       changePasswordRequest.getUserName(), changePasswordRequest.getOldPassword()));
+        changePasswordRequest.getUserName(), changePasswordRequest.getOldPassword()));
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
     if (userDetails == null) {
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Password not match!"));
-    }
-    else{
-      userServices.changePassword(changePasswordRequest.getUserId(),changePasswordRequest.getNewPassword());
+    } else {
+      userServices.changePassword(changePasswordRequest.getUserId(), changePasswordRequest.getNewPassword());
       return ResponseEntity.ok(new MessageResponse("Change password successfully!"));
     }
 

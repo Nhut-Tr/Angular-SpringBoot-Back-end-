@@ -11,14 +11,12 @@ import com.example.security.service.ProductService;
 import com.example.security.service.ShoppingConfiguration;
 import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.transaction.Transactional;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @RestController
 @RequestMapping("/order")
@@ -55,6 +53,7 @@ public class OrderController {
         List<Cart> cartItems = cartService.getCartByUserId(userId);
         List<CheckoutCart> tmp = new ArrayList<>();
         Orders or = new Orders();
+        or.setStatus(1);
         for (Cart addCart : cartItems) {
           Products product = addCart.getProducts();
           CheckoutCart cart = new CheckoutCart();
@@ -118,5 +117,31 @@ public class OrderController {
     return checkoutDAO.getBestSale();
   }
 
+
+  @GetMapping("/list-checkout")
+  public List<Orders> getAllCheckout(){
+    return ordersDAO.findAll();
+  }
+  @GetMapping("/list-order/{id}")
+  public ResponseEntity<Orders> getOrderById(@PathVariable Long id){
+    Optional<Orders> order = ordersDAO.findById(id);
+    if(order.isPresent()){
+      return new ResponseEntity<>(order.get(), HttpStatus.OK);
+    }else{
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+  }
+
+  @PutMapping("/update-order/{id}")
+  public ResponseEntity<Orders> updateOrder(@PathVariable(name = "id") Long id, @RequestBody Orders orders) {
+    Optional<Orders> ordersData = ordersDAO.findById(id);
+    if (ordersData.isPresent()) {
+      Orders order = ordersData.get();
+      order.setStatus(orders.getStatus());
+      return new ResponseEntity<>(ordersDAO.save(order), HttpStatus.OK);
+    } else {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+  }
 
 }

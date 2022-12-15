@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import javax.validation.Valid;
 
+import com.example.model.Orders;
 import com.example.model.Users;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
@@ -28,18 +29,19 @@ public class ProductsController {
 
 	@PostMapping("/product")
 	public ResponseEntity<Products> create(@RequestBody @Valid Products product) {
+		product.setStatus(true);
 		Products savedProduct = productDAO.save(product);
 		URI productURI = URI.create("/products/" + savedProduct.getId());
 		return ResponseEntity.created(productURI).body(savedProduct);
 	}
 
 	@GetMapping("/search-product-name")
-	public List<Products> findProductName(@Param("name") String name){
-		return productDAO.findProductName(name);
+	public List<Products> findProductName(@Param("name") String name, @Param("status") Boolean status){
+		return productDAO.findProductName(name,true);
 	}
 	@GetMapping("/product-list")
 	public List<Products> list() {
-		return productDAO.findAll();
+		return productDAO.findAllByStatus(true);
 	}
 	
 	//get product by id rest api
@@ -70,25 +72,28 @@ public class ProductsController {
 	}
 
 	//delete product by id
-	@DeleteMapping("/product/{id}")
-	public ResponseEntity<HttpStatus> deleteProduct(@PathVariable Long id){
-		try {
-			productDAO.deleteById(id);
-			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-		}catch(Exception ex){
-			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+//	@DeleteMapping("/product/{id}")
+//	public ResponseEntity<HttpStatus> deleteProduct(@PathVariable Long id){
+//		try {
+//			productDAO.deleteById(id);
+//			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+//		}catch(Exception ex){
+//			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+//		}
+//	}
+	//Delete soft
+	@PutMapping("/product-status/{id}")
+	public ResponseEntity<Products> updateStatus(@PathVariable(name = "id") Long id) {
+		Optional<Products> productsData = productDAO.findById(id);
+		if (productsData.isPresent()) {
+			Products pro = productsData.get();
+			pro.setStatus(false);
+			return new ResponseEntity<>(productDAO.save(pro), HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 	}
 
 
-	//delete product
-	@DeleteMapping("/product")
-	public ResponseEntity<HttpStatus> deleteProduct(){
-		try {
-			productDAO.deleteAll();
-			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-		}catch(Exception ex){
-			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
+
 }

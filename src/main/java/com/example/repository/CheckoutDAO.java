@@ -2,6 +2,7 @@ package com.example.repository;
 
 import com.example.model.Cart;
 import com.example.model.CheckoutCart;
+import com.example.model.Orders;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,4 +20,7 @@ public interface CheckoutDAO extends JpaRepository<CheckoutCart,Long> {
 
     @Query(value ="Select * FROM Checkout_Cart c Order By Quantity desc",nativeQuery = true)
     List<CheckoutCart> getBestSale();
+
+    @Query(value ="Select * FROM Orders",nativeQuery = true)
+    List<Orders> getAllCheckout();
 }

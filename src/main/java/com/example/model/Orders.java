@@ -16,13 +16,13 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name="ORDERS")
-public class Orders {
+public class Orders extends Base<String>{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
     @Column(name = "status")
-    private Boolean status;
+    private Integer status;
 
 
     @JsonIgnore

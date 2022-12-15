@@ -19,7 +19,10 @@ public interface ProductsDAO extends JpaRepository<Products,Long>{
 	List<Products> findByName(String name);
 	Optional<Products> findById(Long id);
 
+	List<Products> findAllByStatus(Boolean status);
+	@Query(value="Select * from ProductNG p where UPPER(p.name) like %:name% and p.status=:status",nativeQuery = true)
+	List<Products> findProductName(@Param("name") String name,@Param("status") Boolean status);
 
-	@Query(value="Select * from ProductNG p where UPPER(p.name) like %:name% ",nativeQuery = true)
-	List<Products> findProductName(@Param("name") String name);
+
+
 }

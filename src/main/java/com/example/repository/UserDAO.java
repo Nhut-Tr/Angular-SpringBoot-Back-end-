@@ -9,8 +9,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.example.model.Users;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
 @Repository
 public interface UserDAO extends JpaRepository<Users, Long>{
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	Optional<Users> findByUsername(String username);
 	Boolean existsByUsername(String userName);
 	Boolean existsByEmail(String email);

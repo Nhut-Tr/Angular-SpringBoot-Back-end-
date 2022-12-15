@@ -17,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name="ProductNG")
-public class Products  {
+public class Products  extends Base<String>{
 	
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,6 +37,13 @@ public class Products  {
 
 //	@Column(name = "Added_on")
 //	private String added_on;
+
+	@Column(name="Quantity")
+	private Integer quantity;
+
+	@Column(name="Status")
+	private Boolean status;
+
 
 
 	@JsonIgnore
