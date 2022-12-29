@@ -115,7 +115,7 @@ public class AuthController {
       });
     }
 
-    user.setRole(roles);
+    user.setRoles(roles);
     userServices.register(user, getSiteURL);
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
   }

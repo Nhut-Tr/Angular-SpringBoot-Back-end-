@@ -21,6 +21,7 @@ public class CheckoutCart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
+
     @Column(name = "Quantity")
     Double quantity;
 

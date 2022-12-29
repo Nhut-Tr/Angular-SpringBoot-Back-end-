@@ -14,7 +14,9 @@ import java.util.Optional;
 
 @Repository
 public interface CartDAO extends JpaRepository<Cart, Long> {
-  @Query("Select sum(addCart.price * addCart.quantity) FROM Cart addCart WHERE addCart.user_id=:userId")
+
+  Cart getByUserIdAndProductsId(Long userId, Long productId);
+  @Query("Select sum(addCart.price * addCart.quantity) FROM Cart addCart WHERE addCart.userId=:userId")
   Double getTotalAmountByUserId(@Param("userId") Long userId);
 
   @Transactional

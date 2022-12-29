@@ -1,20 +1,25 @@
 package com.example.controller;
 
+import com.example.dto.request.BestSaleDTO;
+import com.example.dto.request.FindDateDTO;
+
 import com.example.dto.response.ApiResponse;
 import com.example.model.*;
-import com.example.repository.CartDAO;
-import com.example.repository.CheckoutDAO;
-import com.example.repository.OrdersDAO;
-import com.example.repository.UserDAO;
+import com.example.repository.*;
 import com.example.security.service.CartService;
 import com.example.security.service.ProductService;
 import com.example.security.service.ShoppingConfiguration;
 import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import java.util.*;
 
@@ -37,6 +42,8 @@ public class OrderController {
 
   @Autowired
   OrdersDAO ordersDAO;
+  @Autowired
+  ProductsDAO productsDAO;
 
   @Transactional
   @RequestMapping("/check-out")
@@ -55,6 +62,7 @@ public class OrderController {
         Orders or = new Orders();
         or.setStatus(1);
         for (Cart addCart : cartItems) {
+          Products pro = productsDAO.findById(addCart.getProducts().getId()).orElseThrow(()->new EntityNotFoundException("PRODUCT NOT FOUND "));
           Products product = addCart.getProducts();
           CheckoutCart cart = new CheckoutCart();
           double price;
@@ -62,11 +70,17 @@ public class OrderController {
           cart.setPrice(price);
           cart.setUserId(userId);
           cart.setProducts(product);
+          Double productQuantity;
+          if(product.getQuantity() < addCart.getQuantity()){
+            throw new RuntimeException("Sorry "+product.getName()+" only have " + Math.round(product.getQuantity()) +" items in stock!");
+          }
+          productQuantity = pro.getQuantity() - addCart.getQuantity();
           cart.setQuantity(addCart.getQuantity());
           cart.setDeliveryAddress(addCartRequest.get("deliveryAddress"));
           cart.setPhoneNumber(addCartRequest.get("phoneNumber"));
           cart.setDescription(addCartRequest.get("description"));
           cart.setOrders(or);
+          product.setQuantity(productQuantity);
           tmp.add(cart);
           checkoutDAO.save(cart);
         }
@@ -113,14 +127,16 @@ public class OrderController {
   }
 
   @GetMapping("/get-best-sale")
-  public List<CheckoutCart> getBestSale() {
-    return checkoutDAO.getBestSale();
+  public List<BestSaleDTO> getBestSale() {
+    Pageable pageable = PageRequest.of(0,6);
+    return checkoutDAO.getBestSale(pageable);
   }
 
 
   @GetMapping("/list-checkout")
-  public List<Orders> getAllCheckout(){
-    return ordersDAO.findAll();
+  public Page<Orders> getAllCheckout(@RequestParam("page") int page, @RequestParam("size") int size){
+    Pageable pageable = PageRequest.of(page,size);
+    return ordersDAO.findAll(pageable);
   }
   @GetMapping("/list-order/{id}")
   public ResponseEntity<Orders> getOrderById(@PathVariable Long id){
@@ -143,5 +159,34 @@ public class OrderController {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
   }
+
+  @GetMapping("/get-date")
+  public List<Orders> getDate(){
+      return ordersDAO.getDateForChart();
+  }
+
+  @GetMapping("/get-total-sales")
+  public Integer getTotalSales(){
+    return checkoutDAO.getSum();
+  }
+
+  @PostMapping("/find-by-date")
+  public Page<Orders> findDate(@RequestBody FindDateDTO findDateDTO, @RequestParam("page") int page, @RequestParam("size") int size){
+    Pageable pageable = PageRequest.of(page,size);
+    return ordersDAO.findByCreatedAt(findDateDTO.getStart(),findDateDTO.getFinish(),pageable);
+  }
+
+  @PostMapping("/find-by-status")
+  public Page<Orders> findByStatus(@RequestBody Integer status, @RequestParam("page") int page, @RequestParam("size") int size){
+    Pageable pageable = PageRequest.of(page,size);
+    return ordersDAO.findByStatus(status,pageable);
+  }
+
+  @PostMapping("/find-by-status-and-date")
+  public Page<Orders> findByStatusAndDate(@RequestBody FindDateDTO findDateDTO, @RequestParam("page") int page, @RequestParam("size") int size){
+    Pageable pageable = PageRequest.of(page,size);
+    return ordersDAO.findByStatusAndDate(findDateDTO.getStart(),findDateDTO.getFinish(),findDateDTO.getStatus(),pageable);
+  }
+
 
 }

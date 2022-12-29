@@ -64,7 +64,7 @@ public class Users {
     @JoinTable(name= "User_Role",
     	joinColumns = @JoinColumn(name = "User_Id"),
     	inverseJoinColumns = @JoinColumn(name = "Role_Id"))
-	private Set<Role> role = new HashSet<>();
+	private Set<Role> roles = new HashSet<>();
 
 
 	@OneToMany(mappedBy = "userId")

@@ -46,7 +46,7 @@ public class Cart implements Serializable {
 
     //    @OneToOne
 //    @JoinColumn(name ="User_id")
-    Long user_id;
+    Long userId;
 
 
 //    @ManyToOne

@@ -1,28 +1,24 @@
 package com.example.controller;
 
 import java.util.*;
-
 import com.example.dto.request.SignupRequest;
 import com.example.dto.request.UpdateProfileDTO;
 import com.example.dto.response.MessageResponse;
-import com.example.model.ERole;
-import com.example.model.Products;
-import com.example.model.Role;
-import com.example.model.Users;
+import com.example.model.*;
 import com.example.repository.RoleDAO;
 import com.example.repository.UserDAO;
 import com.example.security.service.IStorageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -46,8 +42,9 @@ public class UserController {
   IStorageService iStorageService;
 
   @GetMapping("/users")
-  public List<Users> list() {
-    return userDAO.findAll();
+  public Page<Users> list(@RequestParam("page") int page, @RequestParam("size") int size) {
+    Pageable pageable = PageRequest.of(page,size);
+    return userDAO.findAll(pageable);
   }
 
 
@@ -62,10 +59,43 @@ public class UserController {
   }
 
   @GetMapping("/search-user-name")
-  public List<Users> findUserName(@Param("userName") String userName) {
-    return userDAO.findUserName(userName);
+  public Page<Users> findUserName(@Param("userName") String userName, @RequestParam("page") int page, @RequestParam("size") int size) {
+    Pageable pageable = PageRequest.of(page,size);
+    return userDAO.findUserName(userName,pageable);
   }
 
+  @GetMapping("/search-role")
+  public Page<Users> findByRole(@RequestParam("id") Integer id, @RequestParam("page") int page, @RequestParam("size") int size) {
+    Pageable pageable = PageRequest.of(page,size);
+    return userDAO.findByRolesId(id,pageable);
+  }
+
+  @GetMapping("/search-email")
+  public Page<Users> findUserByEmail(@Param("email") String email, @RequestParam("page") int page, @RequestParam("size") int size) {
+    Pageable pageable = PageRequest.of(page,size);
+    return userDAO.findUserByEmail(email,pageable);
+  }
+  @GetMapping("/find-user-by-status")
+  public Page<Users> findByStatus(@RequestParam("enabled") Boolean enabled, @RequestParam("page") int page, @RequestParam("size") int size){
+    Pageable pageable = PageRequest.of(page,size);
+    return userDAO.findByEnabled(enabled,pageable);
+  }
+
+  @GetMapping("/search-all")
+  public Page<Users> findUserAll(@Param("userName") String userName,@Param("email") String email,@Param("roleId") String roleId,@Param("enabled") String enabled, @RequestParam("page") int page, @RequestParam("size") int size) {
+    Pageable pageable = PageRequest.of(page,size);
+    if(roleId=="" && enabled==""){
+      return userDAO.findByUsernameContainingAndEmailContaining(userName,email,pageable);
+    }
+    if(roleId.equals("")){
+       return userDAO.findByUsernameContainingAndEmailContainingAndEnabled(userName,email,Boolean.parseBoolean(enabled),pageable);
+    }
+    if(enabled.equals("")){
+      return userDAO.findByUsernameContainingAndEmailContainingAndRolesId(userName,email,Integer.parseInt(roleId),pageable);
+    }
+
+    return userDAO.findByUsernameContainingAndEmailContainingAndRolesIdAndEnabled(userName,email,Integer.parseInt(roleId),Boolean.parseBoolean(enabled),pageable);
+  }
   @PutMapping("/admin/update-user/{id}")
   public ResponseEntity<Users> updateUser(@PathVariable(name = "id") Long id, @RequestBody Users users) {
     Optional<Users> usersData = userDAO.findById(id);
@@ -74,7 +104,7 @@ public class UserController {
       user.setUsername(users.getUsername());
       user.setFullName(users.getFullName());
       user.setEnabled(users.getEnabled());
-      user.setRole(users.getRole());
+      user.setRoles(users.getRoles());
       return new ResponseEntity<>(userDAO.save(user), HttpStatus.OK);
     } else {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -119,46 +149,36 @@ public class UserController {
       });
     }
 
-    user.setRole(roles);
+    user.setRoles(roles);
     userDAO.save(user);
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
   }
-  private Users getPrincipal() {
-    Users user = null;
-    if (SecurityContextHolder.getContext().getAuthentication().getPrincipal() instanceof Users) {
-      user = (Users) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
-    return user;
-  }
+
 
   @PutMapping(value="/update-user",consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
   @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
   public ResponseEntity<Users> updateProfile(@RequestPart("user") String updateProfileRequest, @RequestPart(value = "file",required = false) MultipartFile file) throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     UpdateProfileDTO updateProfileDTO = objectMapper.readValue(updateProfileRequest, UpdateProfileDTO.class);
-//    UserDetailsImpl userDetails = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     Optional<Users> usersData = userDAO.findById(updateProfileDTO.getId());
-    String avatar = iStorageService.storeFile(file);
+    String avatar="";
+    if(file != null){
+       avatar = iStorageService.storeFile(file);
+    }
+
     if (usersData.isPresent()) {
       Users user = usersData.get();
       user.setFullName(updateProfileDTO.getFullName());
-      user.setAvatar(avatar);
+      if(file != null){
+        user.setAvatar(avatar);
+      }
+
       return new ResponseEntity<>(userDAO.save(user), HttpStatus.OK);
     } else {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
   }
 
-
-//  @DeleteMapping("/user/{id}")
-//  public ResponseEntity<HttpStatus> deleteUser(@PathVariable Long id) {
-//    try {
-//      userDAO.deleteById(id);
-//      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-//    } catch (Exception ex) {
-//      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-//    }
-//  }
   @PutMapping("/user-status/{id}")
   public ResponseEntity<Users> updateStatus(@PathVariable(name = "id") Long id) {
     Optional<Users> userData = userDAO.findById(id);
@@ -170,15 +190,16 @@ public class UserController {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
   }
+  @GetMapping("/user-list-deactivated")
+  public List<Users> listDeactivated() {
+    return userDAO.findAllByEnabled(false);
+  }
+
+  @GetMapping("/user-list-activated")
+  public List<Users> listActivated() {
+    return userDAO.findAllByEnabled(true);
+  }
 
 
-//  @DeleteMapping("/user")
-//  public ResponseEntity<HttpStatus> deleteUser() {
-//    try {
-//      userDAO.deleteAll();
-//      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-//    } catch (Exception ex) {
-//      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-//    }
-//  }
+
 }

@@ -39,7 +39,7 @@ public class Products  extends Base<String>{
 //	private String added_on;
 
 	@Column(name="Quantity")
-	private Integer quantity;
+	private Double quantity;
 
 	@Column(name="Status")
 	private Boolean status;

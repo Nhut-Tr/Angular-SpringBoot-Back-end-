@@ -63,10 +63,10 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
 				.exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
 				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
 				.authorizeRequests().antMatchers("/api/**","/login","/register","/verify","/forget-password","/reset-password","/change-password").permitAll()
-				.antMatchers("/cart/**/**").permitAll()
+				.antMatchers("/cart/**/**").authenticated()
 				.antMatchers("/order/**").permitAll()
 				.antMatchers("/controller/**").permitAll()
-				.antMatchers("/admin/**","/user/**","/users/**","/search-user-name/**","/update-user/**","/admin/add-user").permitAll()
+				.antMatchers("/admin/**","/user/**","/users/**","/search-user-name/**","/update-user/**","/admin/add-user","/user-list-deactivated","/user-list-activated").permitAll()
 				.anyRequest().authenticated();
 		http.authenticationProvider(authenticationProvider());
 		http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
