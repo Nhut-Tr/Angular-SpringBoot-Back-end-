@@ -1,22 +1,31 @@
 package com.example.controller;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import javax.validation.Valid;
 
+import com.example.dto.request.BestSaleDTO;
+import com.example.model.Base;
 import com.example.model.Orders;
 import com.example.model.Users;
+import com.example.repository.CheckoutDAO;
+import com.example.repository.OrdersDAO;
+import com.example.repository.UserDAO;
+import com.example.security.service.ExportService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +39,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class ProductsController {
   @Autowired
   private ProductsDAO productDAO;
+
+  @Autowired
+  private CheckoutDAO checkoutDAO;
+  @Autowired
+  private UserDAO userDAO;
+
+
+  private ExportService exportService;
 
   @PostMapping("/product")
   public ResponseEntity<Products> create(@RequestBody @Valid Products product) {
@@ -119,4 +136,17 @@ public class ProductsController {
     return productDAO.findByNameIsContainingAndPriceGreaterThanEqualAndPriceLessThanEqualAndStatus(name,minPrice,maxPrice,Boolean.parseBoolean(status),pageable);
   }
 
+
+  @GetMapping("/export/excel")
+  public ResponseEntity<InputStreamResource> exportBestSaleExcel() throws IOException {
+    Pageable pageable = PageRequest.of(0,10);
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    Optional<Users> users = userDAO.findByUsername(authentication.getName());
+    List<BestSaleDTO> bestSaleDTOList = (List<BestSaleDTO>) checkoutDAO.getBestSale(pageable);
+    ByteArrayInputStream bais = exportService.excelReport(bestSaleDTOList);
+    HttpHeaders headers = new HttpHeaders();
+    Date createdAt = new Date();
+    headers.add("Content-Disposition","inline; filename=bestSale.xlsx");
+    return ResponseEntity.ok().headers(headers).body(new InputStreamResource(bais));
+  }
 }

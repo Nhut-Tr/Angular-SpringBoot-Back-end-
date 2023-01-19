@@ -58,6 +58,14 @@ public class Users {
 	@Column(name = "Avatar")
 	private String avatar;
 
+	@Column(name = "account_non_locked")
+	private Boolean accountNonLocked;
+
+	@Column(name = "failed_attempt")
+	private Integer failedAttempt;
+
+	@Column(name = "lock_time")
+	private Date lockTime;
 
 	@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 	@ManyToMany(fetch = FetchType.EAGER)

@@ -128,13 +128,14 @@ public class OrderController {
 
   @GetMapping("/get-best-sale")
   public List<BestSaleDTO> getBestSale() {
-    Pageable pageable = PageRequest.of(0,6);
+    Pageable pageable = PageRequest.of(0,10);
     return checkoutDAO.getBestSale(pageable);
   }
 
 
   @GetMapping("/list-checkout")
   public Page<Orders> getAllCheckout(@RequestParam("page") int page, @RequestParam("size") int size){
+
     Pageable pageable = PageRequest.of(page,size);
     return ordersDAO.findAll(pageable);
   }
@@ -146,6 +147,11 @@ public class OrderController {
     }else{
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
+  }
+
+  @GetMapping("/list-total/{orderId}")
+  public Double getAllCheckout(@PathVariable Long orderId){
+    return ordersDAO.totalAllByOrder(orderId);
   }
 
   @PutMapping("/update-order/{id}")

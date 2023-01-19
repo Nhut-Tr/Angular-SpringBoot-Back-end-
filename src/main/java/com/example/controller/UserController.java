@@ -93,12 +93,12 @@ public class UserController {
     if(enabled.equals("")){
       return userDAO.findByUsernameContainingAndEmailContainingAndRolesId(userName,email,Integer.parseInt(roleId),pageable);
     }
-
     return userDAO.findByUsernameContainingAndEmailContainingAndRolesIdAndEnabled(userName,email,Integer.parseInt(roleId),Boolean.parseBoolean(enabled),pageable);
   }
   @PutMapping("/admin/update-user/{id}")
   public ResponseEntity<Users> updateUser(@PathVariable(name = "id") Long id, @RequestBody Users users) {
     Optional<Users> usersData = userDAO.findById(id);
+ 
     if (usersData.isPresent()) {
       Users user = usersData.get();
       user.setUsername(users.getUsername());

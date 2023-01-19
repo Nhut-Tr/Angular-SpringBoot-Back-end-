@@ -32,4 +32,7 @@ public interface OrdersDAO extends JpaRepository<Orders, Long> {
 
   @Query(value = "select o from Orders o where cast(o.createdAt as date) between cast(?1 as date) and cast(?2 as date) and o.status=?3")
   Page<Orders> findByStatusAndDate(Date start, Date finish, Integer status, Pageable pageable);
+
+  @Query(value="select sum(c.price * c.quantity) from CheckoutCart c join c.orders o where o.id = ?1 group by o.id")
+  Double totalAllByOrder(Long orderId);
 }
